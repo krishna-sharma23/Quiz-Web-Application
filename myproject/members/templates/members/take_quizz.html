@@ -1,0 +1,70 @@
+{% extends "members/base.html" %}
+{% load static %}
+
+{% block title %}Take Quiz - QuizKwik{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'members/take_quiz.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="take-quiz-container">
+  {% csrf_token %}
+  
+  <!-- Header Section -->
+  <section class="quiz-header">
+    <div class="header-content">
+      <h1>🎮 Take a Quiz</h1>
+      <p>Challenge yourself and test your knowledge</p>
+    </div>
+  </section>
+
+  <!-- Search & Filter Section -->
+  <div class="search-filter-section">
+    <div class="search-box">
+      <input 
+        type="text" 
+        id="searchInput" 
+        placeholder="🔍 Search quizzes by name..." 
+        class="search-input"
+      >
+    </div>
+    <div class="filter-chips">
+      <button class="chip" data-filter="all">All</button>
+      <button class="chip" data-filter="Science">Science</button>
+      <button class="chip" data-filter="History">History</button>
+      <button class="chip" data-filter="Geography">Geography</button>
+      <button class="chip" data-filter="Mathematics">Mathematics</button>
+      <button class="chip" data-filter="Technology">Technology</button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loadingState" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading quizzes...</p>
+  </div>
+
+  <!-- Error State -->
+  <div id="errorState" class="error-state" style="display: none;">
+    <p>❌ No quizzes available at the moment</p>
+  </div>
+
+  <!-- Quizzes Container -->
+  <div id="quiz_container" class="quiz-container">
+    <!-- Quiz cards will be dynamically inserted here -->
+  </div>
+
+  <!-- Empty State -->
+  <div id="emptyState" class="empty-state" style="display: none;">
+    <div class="empty-icon">📭</div>
+    <h2>No Quizzes Found</h2>
+    <p>Try adjusting your search or filters</p>
+  </div>
+</div>
+
+<script>
+  let url = "{% url 'display' %}"
+</script>
+<script src="{% static 'members/take_quiz.js' %}"></script>
+{% endblock %}

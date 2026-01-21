@@ -1,0 +1,111 @@
+{% extends "members/base.html" %}
+
+{% load static %}
+
+{% block title %}Home Page - QuizKwik{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'members/index.css' %}">{% endblock %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Master Knowledge Through Interactive Quizzes! 🚀</h1>
+            <p>Challenge yourself with engaging quizzes, compete with friends, and climb the leaderboard. Learn smarter, have fun, and showcase your expertise!</p>
+            <a href="{% url 'take_quizz' %}" class="cta-btn">Start Taking Quiz</a>
+        </div>
+        <div class="hero-art">
+            <img src="{% static 'members/trophy.png' %}" alt="Trophy">
+        </div>
+    </section>
+
+    <!-- Quick Action Cards -->
+    <section class="options">
+        <a href="{% url 'create_quizz' %}" class="card">
+            <span class="card-icon">📝</span>
+            <span class="card-title">Create Quiz</span>
+            <span class="card-desc">Design and share your own quiz</span>
+        </a>
+        <a href="{% url 'take_quizz' %}" class="card">
+            <span class="card-icon">🎮</span>
+            <span class="card-title">Take Quiz</span>
+            <span class="card-desc">Test your knowledge now</span>
+        </a>
+        <a href="{% url 'leaderboard' %}" class="card">
+            <span class="card-icon">🏆</span>
+            <span class="card-title">Leaderboard</span>
+            <span class="card-desc">See top performers</span>
+        </a>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <h2 class="section-title">Why Choose QuizKwik?</h2>
+        <p class="section-subtitle">The ultimate learning and competition platform</p>
+        
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon">⚡</div>
+                <h3>Instant Feedback</h3>
+                <p>Get immediate results and detailed explanations. Learn from your mistakes and improve your scores instantly.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🎯</div>
+                <h3>Personalized Quizzes</h3>
+                <p>Create custom quizzes tailored to your needs. Share with friends and track their progress.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">📊</div>
+                <h3>Track Progress</h3>
+                <p>Monitor your improvement over time with detailed analytics and performance metrics.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🏅</div>
+                <h3>Earn Recognition</h3>
+                <p>Compete fairly and earn badges. Top performers are featured on our global leaderboard.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🌍</div>
+                <h3>Community Driven</h3>
+                <p>Join thousands of learners worldwide. Share quizzes and compete with a global community.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🔒</div>
+                <h3>Secure & Private</h3>
+                <p>Your data is safe with us. Control who can see your quizzes and scores.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h3>50K+</h3>
+                <p>Active Users</p>
+            </div>
+            <div class="stat-item">
+                <h3>10K+</h3>
+                <p>Quizzes Created</p>
+            </div>
+            <div class="stat-item">
+                <h3>1M+</h3>
+                <p>Questions Answered</p>
+            </div>
+            <div class="stat-item">
+                <h3>98%</h3>
+                <p>User Satisfaction</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="features" style="text-align: center; padding: 80px 50px;">
+        <h2 class="section-title">Ready to Get Started?</h2>
+        <p class="section-subtitle">Join thousands of learners and start your quiz journey today!</p>
+        <div style="margin-top: 30px;">
+            <a href="{% url 'register' %}" class="cta-btn">Create Account</a>
+        </div>
+    </section>
+{% endblock %}
+

@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}My Django Site{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'members/style.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Quantico:ital,wght@0,400;0,700;1,400;1,700&family=SUSE+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Condiment&family=Fugaz+One&display=swap" rel="stylesheet">
+    {% block extra_css %}
+    {% endblock %}
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="logo">🎯 QuizKwik</div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="{% url 'index' %}">Home</a></li>
+                    <li><a href="{% url 'take_quizz' %}">Take Quiz</a></li>
+                    <li><a href="{% url 'leaderboard' %}">Leaderboard</a></li>
+                    <li><a href="{% url 'explore' %}">Explore</a></li>
+                </ul>
+            </nav>
+            <div class="auth-links">
+                <a href="{% url 'login' %}" class="login">Login</a>
+                <a href="{% url 'register' %}" class="register">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Us</h4>
+                <p>QuizKwik is your ultimate platform for engaging quizzes and competitive trivia. Learn, compete, and win!</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <a href="{% url 'index' %}">Home</a>
+                <a href="{% url 'take_quizz' %}">Take Quiz</a>
+                <a href="{% url 'leaderboard' %}">Leaderboard</a>
+                <a href="{% url 'explore' %}">Explore</a>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>Email: contact@quizkwik.com</p>
+                <p>Phone: +1 (555) 123-4567</p>
+                <p>Follow us on social media!</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 QuizKwik. All rights reserved. | <a href="#" style="display: inline; color: #ffd700;">Privacy Policy</a> | <a href="#" style="display: inline; color: #ffd700;">Terms of Service</a></p>
+        </div>
+    </footer>
+</body>
+</html>

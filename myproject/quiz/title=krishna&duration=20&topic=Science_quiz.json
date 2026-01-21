@@ -1,0 +1,43 @@
+{
+    "Title": "krishna",
+    "Duration": "20",
+    "Topic": "Science",
+    "Questions": [
+        {
+            "question_number": 1,
+            "question": "what is the capital of India?",
+            "type": "MCQ",
+            "options": [
+                "Dehli",
+                "Kolkata",
+                "Uttarakhand",
+                "Bombay"
+            ],
+            "answer": "Dehli"
+        },
+        {
+            "question_number": 2,
+            "question": "who is the Prime Minister of India?",
+            "type": "MCQ",
+            "options": [
+                "Modi",
+                "Rahul",
+                "Krishna",
+                "Anant"
+            ],
+            "answer": "Krishna"
+        },
+        {
+            "question_number": 3,
+            "question": "Who is this?",
+            "type": "MCQ",
+            "options": [
+                "Me",
+                "You",
+                "Nobody",
+                "Somebody"
+            ],
+            "answer": "Somebody"
+        }
+    ]
+}

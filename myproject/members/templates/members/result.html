@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Result</title>
+    <link rel="stylesheet" href="{% static 'members/result.css' %}">
+</head>
+<body>
+    <div class="result-container">
+        <h1 class="result-title">🎯 Quiz Results</h1>
+
+        <div class="result-card">
+            <div class="emoji-holder" id="emoji">😶</div>
+            
+            <div class="score-section">
+                <h2>Congratulations!</h2>
+                <p>You have scored:</p>
+                <h1 id="score">0</h1>
+            </div>
+
+            <div class="image-holder">
+                <img id="result-image" src="{% static 'members/images/trophy.png' %}" alt="Result Image">
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="retake-btn">🔁 Retake Quiz</button>
+            <button id="home-btn">🏠 Go Home</button>
+        </div>
+    </div>
+
+    <script src="{% static 'members/result.js' %}"></script>
+</body>
+</html>

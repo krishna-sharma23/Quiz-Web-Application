@@ -1,0 +1,41 @@
+{% extends 'members/base.html' %}
+
+{% load static %}
+
+{% csrf_token %}
+
+{% block title %}Login Page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'members/login.css' %}">
+{% endblock %}
+
+{% block h1 %}Login Page{% endblock %}
+
+{% block content %}
+    <div class="login-container">
+        <h1 class="heading">Login</h1>
+        <form id="loginForm">
+        <label class="details" for="username">Username or Email:</label>
+        <input type="text" id="username" name="username" required>
+
+        <p class="warning" id="warning1">*Incorrect Username</p>
+
+        <label class="details" for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+
+        <p class="warning" id="warning2">*Incorrect Password</p>
+
+        <button class="button-55" type="button" id="show">Show Password</button>
+
+        <br>
+        <br>
+
+        <button class="button-55" type="button" id="submit">Login</button>
+        </form>
+
+        <p class="para">Don’t have an account? <a href="{% url 'register' %}">Register here</a></p>
+    </div>
+
+    <script src="{% static 'members/login.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% load static %}
+{% csrf_token %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'members/quiz.css' %}">
+    <title>Document</title>
+</head>
+<body>
+    <div id="message">
+        <h1 id="BOL">Best Of Luck</h1>
+    </div>
+    <header>
+        <h1>Take Quiz page</h1>
+        <div id="timerContainer">
+            Time left: <span id="timer">00:00</span>
+        </div>
+    </header>
+    <main>
+        <div id="Question_container">
+        </div>
+        <div class="Submit"><button id="Submit">SUBMIT</button></div>
+    </main>
+    <script src="{% static 'members/quiz.js' %}"></script>
+</body>
+</html>

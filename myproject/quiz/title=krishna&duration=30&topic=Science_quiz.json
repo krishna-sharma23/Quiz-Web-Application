@@ -1,0 +1,19 @@
+{
+    "Title": "krishna",
+    "Duration": "30",
+    "Topic": "Science",
+    "Questions": [
+        {
+            "question_number": 1,
+            "question": "who",
+            "type": "MCQ",
+            "options": [
+                "a",
+                "b",
+                "c",
+                "d"
+            ],
+            "answer": "b"
+        }
+    ]
+}

@@ -1,0 +1,52 @@
+{% extends 'members/base.html' %}
+
+{% load static %}
+{% csrf_token %}
+
+{% block title %}Register Page{% endblock %}
+
+{% block extra_css %} <link rel="stylesheet" href="{% static 'members/register.css' %}">
+                    <link href="https://fonts.googleapis.com/css2?family=Condiment&family=Fugaz+One&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block h1 %}Registration Page{% endblock %}
+
+{% block content %}
+    <br>
+    <br>
+    <div class="register-container">
+        <h1 class="heading">Create Account</h1>
+        <form id="registerForm">
+        <label class="details" for="fullname">Full Name:</label>
+        <input type="text" id="fullname" name="fullname" required>
+        <p class="warning" id="warning1">*Invalid name</p>
+
+        <label class="details" for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <p class="warning"id="warning2">*Invalid Email Id</p>
+
+        <label class="details" for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+        <p class="warning" id="warning3">*Invalid Username</p>
+
+        <label class="details" for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        <p class="warning" id="warning4">*Invalid Password</p>
+
+        <label class="details" for="confirmPassword">Confirm Password:</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" required>
+        <p class="warning" id="warning5">*Invalid Password</p>
+
+        <button type="button" id="show" class="button-55">Show Password</button>
+        <br>
+        <br>
+
+        <button type="button" id="submit" class="button-55">Register</button>
+        </form>
+
+        <p class="para">Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+    </div>
+    <br>
+    <br>
+    <script src="{% static 'members/register.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "members/base.html" %}
+{% load static %}
+
+{% block title %}Create Quiz - QuizKwik{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'members/create_quizz.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="create-quiz-container">
+  {% csrf_token %}
+  
+  <!-- Header Section -->
+  <section class="quiz-header">
+    <div class="header-content">
+      <h1>🚀 Create Your Quiz</h1>
+      <p>Design engaging quizzes and share with the community</p>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <div class="quiz-content-wrapper">
+    <!-- Left Column: Form -->
+    <div class="quiz-form-section">
+      <!-- Basic Info Card -->
+      <div class="form-card">
+        <h2 class="card-title">📋 Quiz Details</h2>
+        
+        <div class="form-group">
+          <label for="quizz_name">Quiz Name</label>
+          <input type="text" id="quizz_name" placeholder="Enter an engaging quiz title..." class="form-input">
+          <small class="form-hint">Make it catchy and descriptive</small>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="Topic">Category</label>
+            <select id="Topic" class="form-select">
+              <option value="Science">Science</option>
+              <option value="History">History</option>
+              <option value="Geography">Geography</option>
+              <option value="Mathematics">Mathematics</option>
+              <option value="Literature">Literature</option>
+              <option value="Technology">Technology</option>
+              <option value="Sports">Sports</option>
+              <option value="General Knowledge">General Knowledge</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="Duration">Duration</label>
+            <select id="Duration" class="form-select">
+              <option value="10">10 minutes</option>
+              <option value="20">20 minutes</option>
+              <option value="30" selected>30 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="120">2 hours</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question Type Selection -->
+      <div class="form-card">
+        <h2 class="card-title">❓ Question Type</h2>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" id="mcq" name="type" checked>
+            <span class="radio-custom"></span>
+            <span class="radio-text">Multiple Choice</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" id="dat" name="type">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Short Answer</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Question Builder Card -->
+      <div class="form-card">
+        <h2 class="card-title">✏️ Add Question</h2>
+        
+        <div class="form-group">
+          <label for="question">Question Text</label>
+          <textarea id="question" placeholder="Enter your question here..." rows="3" class="form-textarea"></textarea>
+        </div>
+
+        <div id="answer_container" class="answer-container"></div>
+
+        <div class="button-group">
+          <button id="Add" class="btn btn-primary">
+            <span>➕</span> Add Question
+          </button>
+          <button id="Reset" class="btn btn-secondary">
+            <span>🔄</span> Clear
+          </button>
+          <button id="G_Ques" class="btn btn-info">
+            <span>✨</span> Generate Questions
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Preview -->
+    <div class="quiz-preview-section">
+      <!-- Stats Card -->
+      <div class="preview-card stats-card">
+        <div class="stat-item">
+          <span class="stat-label">Questions Added</span>
+          <span class="stat-value" id="number_of_questions">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Quiz Title</span>
+          <span class="stat-value stat-title" id="preview_title">Not Set</span>
+        </div>
+      </div>
+
+      <!-- Questions Preview -->
+      <div class="preview-card">
+        <h3 class="preview-title">📚 Questions Preview</h3>
+        <div class="question_container" id="question_container">
+          <p class="empty-state">No questions added yet</p>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button id="Submit" class="btn btn-success btn-block">
+        <span>✅</span> Save & Publish Quiz
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Question Generation -->
+<div id="blur" class="modal-overlay">
+  <div id="Question_Generator" class="modal-content">
+    <div class="modal-header">
+      <h2>🤖 AI Question Generator</h2>
+      <button id="escape" class="modal-close">✕</button>
+    </div>
+    <div class="modal-body"></div>
+  </div>
+</div>
+
+<script src="{% static 'members/create_quizz.js' %}"></script>
+{% endblock %}

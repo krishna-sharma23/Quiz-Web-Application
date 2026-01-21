@@ -1,0 +1,27 @@
+{% extends 'members/base.html' %}
+
+{% load static %}
+{% csrf_token %}
+
+{% block title %}Leaderboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'members/leaderboard.css' %}">
+{% endblock %}
+
+{% block content %}
+    <h2>Leaderboard</h2>
+    <p>Here we will show the top members.</p>
+    <main>
+        <div id="score_board">
+            <table id="score_table">
+                <tr>
+                    <th>S.No.</th>
+                    <th>Name</th>
+                    <th>Marks</th>
+                </tr>
+            </table>
+        </div>
+    </main>
+    <script src="{% static 'members/leaderboard.js' %}"></script>
+{% endblock %}
