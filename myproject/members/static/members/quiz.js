@@ -123,7 +123,15 @@ async function submitQuiz(auto = false) {
     console.log(json);
     console.log(score);
 
-    document.getElementById('BOL').innerText = 'You have sucessfully submitted the Quiz........ You will be shortly redirected';
+    const scoreText = score ? `Score: ${score}` : '';
+    document.getElementById('BOL').innerHTML = `
+      <div class="success-message">
+        <div class="checkmark">✓</div>
+        <h2>Quiz Submitted Successfully!</h2>
+        <p>${scoreText}</p>
+        <p class="redirect-text">Redirecting to results...</p>
+      </div>
+    `;
     MESSAGE.style.animationDuration = '10s';
     MESSAGE.style.display = 'block';
     setTimeout(() => {

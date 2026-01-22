@@ -10,18 +10,39 @@
 {% endblock %}
 
 {% block content %}
-    <h2>Leaderboard</h2>
-    <p>Here we will show the top members.</p>
+    <div class="leaderboard-header">
+        <h1>🏆 Leaderboard</h1>
+        <p>Top performers across all quizzes</p>
+    </div>
+
     <main>
-        <div id="score_board">
-            <table id="score_table">
-                <tr>
-                    <th>S.No.</th>
-                    <th>Name</th>
-                    <th>Marks</th>
-                </tr>
-            </table>
+        <div class="leaderboard-container">
+            <!-- Overall Top Scorers -->
+            <div id="overall-section" class="leaderboard-section">
+                <div class="section-title">
+                    <h2>⭐ Top Scorers Overall</h2>
+                </div>
+                <div class="score-board">
+                    <table class="score-table">
+                        <thead>
+                            <tr>
+                                <th class="rank-col">Rank</th>
+                                <th class="name-col">Name</th>
+                                <th class="score-col">Score</th>
+                                <th class="quiz-col">Quiz</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overall-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quiz-specific Leaderboards -->
+            <div id="quiz-sections" class="quiz-sections">
+            </div>
         </div>
     </main>
+
     <script src="{% static 'members/leaderboard.js' %}"></script>
 {% endblock %}

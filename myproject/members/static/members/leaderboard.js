@@ -1,41 +1,193 @@
-const BOARD = document.getElementById('score_board');
-const TABLE = document.getElementById('score_table');
+const TOP_LIMIT = 10; // Show top 10 scorers overall
+const QUIZ_LIMIT = 5;  // Show top 5 per quiz
 
 get_data();
 
-async function get_data(){
-    const res = await fetch("/get_score/", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),  
-        },
-    });
-    const data = await res.json();
-    let list = data.Data;
-    console.log(list);
-    const sortedMarks = Object.entries(list)
-    .sort((a, b) => b[1] - a[1])  // sort by value, highest first
-    .reduce((acc, [name, score]) => {
-        acc[name] = score;
-        return acc;
-    }, {});
-    console.log(sortedMarks);
+async function get_data() {
+    try {
+        const res = await fetch("/get_score/", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),  
+            },
+        });
+        const data = await res.json();
+        let rawList = data.Data;
 
-    let temp = 1;
+        // Parse the data to extract quiz info and organize by user and quiz
+        const quizData = parseQuizData(rawList);
+        
+        console.log('Parsed Quiz Data:', quizData);
 
-    for(let ele in sortedMarks){
-        const TR = document.createElement('tr');
-        const TD = [document.createElement('td'), document.createElement('td'), document.createElement('td')];
-        TD[0].textContent = `${temp}`;
-        TD[1].textContent = ele.toUpperCase();
-        TD[2].textContent = `${sortedMarks[ele]}`;
-        for(let i in TD){
-            TR.appendChild(TD[i]);
-        }
-        TABLE.appendChild(TR);
-        temp++;
+        // Display overall top scorers
+        displayOverallLeaderboard(quizData);
+
+        // Display quiz-specific leaderboards
+        displayQuizLeaderboards(quizData);
+
+        // Confetti effect
+        dropConfetti();
+    } catch (err) {
+        console.error('Error fetching leaderboard data:', err);
     }
+}
+
+function parseQuizData(rawData) {
+    const quizMap = {};
+    const allScores = [];
+
+    for (let key in rawData) {
+        // Extract user and score from the key/value
+        // Format from your data appears to be: username -> score
+        const score = parseFloat(rawData[key]);
+        
+        // Try to extract quiz info from storage or assume from context
+        // For now, we'll use the username as key
+        allScores.push({
+            name: key,
+            score: score,
+            quiz: 'General Quiz' // Default, can be enhanced if quiz info is stored
+        });
+    }
+
+    return {
+        allScores: allScores,
+        quizMap: quizMap
+    };
+}
+
+function displayOverallLeaderboard(quizData) {
+    const tbody = document.getElementById('overall-body');
+    
+    // Sort all scores by highest first
+    const sorted = quizData.allScores
+        .sort((a, b) => b.score - a.score)
+        .slice(0, TOP_LIMIT);
+
+    if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No scores yet. Be the first to take a quiz!</td></tr>';
+        return;
+    }
+
+    sorted.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.style.animationDelay = `${index * 0.1}s`;
+        tr.className = 'score-row';
+
+        // Rank with badge
+        const rankTd = document.createElement('td');
+        rankTd.innerHTML = createRankBadge(index + 1);
+        
+        // Name
+        const nameTd = document.createElement('td');
+        nameTd.textContent = item.name.toUpperCase();
+        nameTd.className = 'name-col-cell';
+        
+        // Score
+        const scoreTd = document.createElement('td');
+        scoreTd.innerHTML = `<span class="score-value">${item.score.toFixed(1)}</span>`;
+        
+        // Quiz
+        const quizTd = document.createElement('td');
+        quizTd.textContent = item.quiz;
+        quizTd.className = 'quiz-col-cell';
+
+        tr.appendChild(rankTd);
+        tr.appendChild(nameTd);
+        tr.appendChild(scoreTd);
+        tr.appendChild(quizTd);
+        
+        tbody.appendChild(tr);
+    });
+}
+
+function displayQuizLeaderboards(quizData) {
+    const container = document.getElementById('quiz-sections');
+    
+    // Group scores by quiz (from the quiz info if available)
+    const quizGroups = {};
+    
+    quizData.allScores.forEach(item => {
+        if (!quizGroups[item.quiz]) {
+            quizGroups[item.quiz] = [];
+        }
+        quizGroups[item.quiz].push(item);
+    });
+
+    // Display each quiz's top scorers
+    Object.keys(quizGroups).forEach((quizName, quizIndex) => {
+        const scores = quizGroups[quizName]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, QUIZ_LIMIT);
+
+        const section = document.createElement('div');
+        section.className = 'leaderboard-section';
+        section.style.animationDelay = `${(quizIndex + 1) * 0.2}s`;
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'section-title';
+        titleDiv.innerHTML = `<h2>${getQuizEmoji(quizIndex)} ${quizName}</h2>`;
+
+        const boardDiv = document.createElement('div');
+        boardDiv.className = 'score-board';
+
+        const table = document.createElement('table');
+        table.className = 'score-table';
+
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+            <tr>
+                <th class="rank-col">Rank</th>
+                <th class="name-col">Name</th>
+                <th class="score-col">Score</th>
+            </tr>
+        `;
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        scores.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            
+            const rankTd = document.createElement('td');
+            rankTd.innerHTML = createRankBadge(index + 1);
+            
+            const nameTd = document.createElement('td');
+            nameTd.textContent = item.name.toUpperCase();
+            nameTd.className = 'name-col-cell';
+            
+            const scoreTd = document.createElement('td');
+            scoreTd.innerHTML = `<span class="score-value">${item.score.toFixed(1)}</span>`;
+
+            tr.appendChild(rankTd);
+            tr.appendChild(nameTd);
+            tr.appendChild(scoreTd);
+            tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        boardDiv.appendChild(table);
+        
+        section.appendChild(titleDiv);
+        section.appendChild(boardDiv);
+        container.appendChild(section);
+    });
+}
+
+function createRankBadge(rank) {
+    const badges = {
+        1: { class: 'gold', icon: '🥇' },
+        2: { class: 'silver', icon: '🥈' },
+        3: { class: 'bronze', icon: '🥉' }
+    };
+
+    const badge = badges[rank] || { class: 'default', icon: rank };
+    return `<div class="rank-badge ${badge.class}">${badge.icon}</div>`;
+}
+
+function getQuizEmoji(index) {
+    const emojis = ['📚', '🧪', '🔬', '🎨', '💻', '📐', '🌍', '⚡'];
+    return emojis[index % emojis.length];
 }
 
 function getCookie(name) {
@@ -54,16 +206,18 @@ function getCookie(name) {
 }
 
 function dropConfetti() {
-  for (let i = 0; i < 50; i++) {
-    const confetti = document.createElement('div');
-    confetti.classList.add('confetti');
-    confetti.style.left = `${Math.random() * 100}vw`;
-    confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
-    confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
-    confetti.style.top = '100vh';
-    document.body.appendChild(confetti);
-    setTimeout(() => confetti.remove(), 5000);
-  }
+    for (let i = 0; i < 30; i++) {
+        const confetti = document.createElement('div');
+        confetti.classList.add('confetti');
+        confetti.style.left = `${Math.random() * 100}vw`;
+        confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
+        confetti.style.animationDuration = `${Math.random() * 2 + 1.5}s`;
+        confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+        confetti.style.top = '100vh';
+        document.body.appendChild(confetti);
+        
+        setTimeout(() => {
+            confetti.remove();
+        }, 4000);
+    }
 }
-
-dropConfetti();

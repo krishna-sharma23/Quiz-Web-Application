@@ -6,69 +6,138 @@
   font-family: "Poppins", sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: #f8f9fc;
+  background: linear-gradient(135deg, #f5f7ff 0%, #f0f4ff 100%);
   color: #222;
   overflow-x: hidden;
+  min-height: 100vh;
 }
 
 /* ========== HEADER ========== */
 header {
   background: linear-gradient(135deg, #7E34C8, #9a55ff);
   color: white;
-  padding: 20px 40px;
+  padding: 25px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 100px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  height: auto;
+  box-shadow: 0 8px 24px rgba(126, 52, 200, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 header h1 {
-  font-size: 1.8rem;
+  font-size: 2rem;
   letter-spacing: 1px;
+  font-weight: 700;
+  flex: 1;
+  min-width: 250px;
 }
 
 #timerContainer {
-  font-size: 1.1rem;
-  background: rgba(255, 255, 255, 0.15);
-  padding: 8px 16px;
-  border-radius: 10px;
-  backdrop-filter: blur(4px);
+  font-size: 1.2rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 12px 24px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+#timer {
+  font-family: "Courier New", monospace;
+  font-weight: 700;
+  letter-spacing: 2px;
 }
 
 /* ========== QUESTION CONTAINER ========== */
 #Question_container {
-  width: 90%;
-  margin: 40px auto;
-  padding: 30px;
-  border: 2px solid #7E34C8;
-  border-radius: 12px;
+  width: 85%;
+  max-width: 900px;
+  margin: 50px auto;
+  padding: 0;
+  border-radius: 16px;
+}
+
+/* Individual Question Block */
+#Question_container > div {
   background: white;
-  box-shadow: 0 8px 20px rgba(126, 52, 200, 0.15);
+  padding: 35px;
+  margin-bottom: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(126, 52, 200, 0.1);
+  border-left: 5px solid #7E34C8;
+  transition: all 0.3s ease;
+}
+
+#Question_container > div:hover {
+  box-shadow: 0 8px 25px rgba(126, 52, 200, 0.15);
+  transform: translateY(-2px);
 }
 
 #Question_container h3 {
-  color: #333;
-  font-size: 1.2rem;
-  margin-bottom: 10px;
+  color: #1a1a1a;
+  font-size: 1.25rem;
+  margin-bottom: 25px;
+  font-weight: 600;
+  line-height: 1.6;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+#Question_container h3::before {
+  content: attr(data-qnum);
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #7E34C8, #9a55ff);
+  color: white;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 /* ========== OPTIONS STYLING ========== */
 .option {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 14px;
+  padding: 14px 16px;
   cursor: pointer;
   user-select: none;
-  border-radius: 8px;
-  transition: background 0.2s ease, transform 0.15s ease;
+  border-radius: 10px;
+  border: 2px solid #e0e0e0;
+  transition: all 0.25s ease;
+  margin-bottom: 12px;
+  background: #fafafa;
 }
 
 .option:hover {
-  background: rgba(126, 52, 200, 0.08);
-  transform: translateY(-2px);
+  background: rgba(126, 52, 200, 0.06);
+  border-color: #7E34C8;
+  transform: translateX(4px);
+}
+
+.option:has(input:checked) {
+  background: rgba(126, 52, 200, 0.1);
+  border-color: #7E34C8;
+  box-shadow: 0 4px 12px rgba(126, 52, 200, 0.12);
 }
 
 /* custom radio */
@@ -76,18 +145,20 @@ header h1 {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  border: 2px solid #7E34C8;
+  border: 2.5px solid #7E34C8;
   position: relative;
-  flex: 0 0 22px;
+  flex: 0 0 24px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
+  background: white;
 }
 
 .option-input:hover {
   border-color: #9a55ff;
+  box-shadow: 0 0 0 4px rgba(126, 52, 200, 0.1);
 }
 
 /* checked dot */
@@ -96,11 +167,11 @@ header h1 {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(0);
-  transition: transform 0.18s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   background: #7E34C8;
 }
 
@@ -111,34 +182,48 @@ header h1 {
 /* text */
 .option-text {
   font-size: 1rem;
-  color: #222;
+  color: #333;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 /* ========== SUBMIT BUTTON ========== */
 .Submit {
   text-align: center;
-  margin-top: 40px;
+  margin: 50px auto;
+  display: flex;
+  justify-content: center;
 }
 
 #Submit {
-  background: #7E34C8;
+  background: linear-gradient(135deg, #7E34C8, #9a55ff);
   color: white;
   border: none;
-  font-size: 1.1rem;
-  padding: 12px 28px;
-  border-radius: 8px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding: 16px 48px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
-  box-shadow: 0 6px 12px rgba(126, 52, 200, 0.25);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 8px 20px rgba(126, 52, 200, 0.3);
+  letter-spacing: 0.5px;
+  min-width: 200px;
 }
 
 #Submit:hover {
-  background: #9a55ff;
-  transform: scale(1.05);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(126, 52, 200, 0.4);
 }
 
 #Submit:active {
-  transform: scale(0.97);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(126, 52, 200, 0.3);
+}
+
+#Submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* ========== MESSAGE SCREEN ========== */
@@ -155,17 +240,192 @@ header h1 {
   animation: fade 5s linear;
   z-index: 9999;
   opacity: 1;
+  backdrop-filter: blur(5px);
 }
 
 #BOL {
   color: white;
-  font-size: 2rem;
   text-align: center;
+  animation: slideUp 0.6s ease-out;
+  max-width: 90%;
+  line-height: 1.4;
+}
+
+.success-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  animation: slideUp 0.6s ease-out;
+}
+
+.checkmark {
+  font-size: 4rem;
+  font-weight: 700;
+  animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.success-message h2 {
+  font-size: 2.2rem;
+  font-weight: 700;
   letter-spacing: 1px;
+  margin: 0;
+}
+
+.success-message p {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin: 0;
+  opacity: 0.95;
+}
+
+.redirect-text {
+  font-size: 1rem !important;
+  opacity: 0.85 !important;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+@media (max-width: 768px) {
+  header {
+    padding: 20px;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  #timerContainer {
+    width: 100%;
+    justify-content: center;
+  }
+
+  #Question_container {
+    width: 95%;
+  }
+
+  #Question_container > div {
+    padding: 25px;
+  }
+
+  #Question_container h3 {
+    font-size: 1.1rem;
+  }
+
+  .option {
+    padding: 12px 14px;
+  }
+
+  #Submit {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  #BOL {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.2rem;
+  }
+
+  #timerContainer {
+    font-size: 1rem;
+    padding: 10px 16px;
+  }
+
+  #Question_container > div {
+    padding: 20px;
+    border-radius: 10px;
+  }
+
+  #Question_container h3 {
+    font-size: 1rem;
+    margin-bottom: 20px;
+  }
+
+  .option {
+    padding: 11px 12px;
+    gap: 10px;
+    font-size: 0.95rem;
+  }
+
+  .option-input {
+    width: 20px;
+    height: 20px;
+  }
+
+  #BOL {
+    font-size: 1.5rem;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0) rotateZ(-45deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotateZ(0deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ========== ANIMATION ========== */
 @keyframes fade {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from { 
+    opacity: 1;
+  }
+  to { 
+    opacity: 0;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth scrolling helper */
+main {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

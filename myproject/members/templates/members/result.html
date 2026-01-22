@@ -4,30 +4,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz Result</title>
+    <title>Quiz Results</title>
     <link rel="stylesheet" href="{% static 'members/result.css' %}">
 </head>
 <body>
     <div class="result-container">
-        <h1 class="result-title">🎯 Quiz Results</h1>
+        <h1 class="result-title">📊 Quiz Complete</h1>
 
         <div class="result-card">
             <div class="emoji-holder" id="emoji">😶</div>
             
             <div class="score-section">
-                <h2>Congratulations!</h2>
-                <p>You have scored:</p>
-                <h1 id="score">0</h1>
+                <h2 id="result-message">Great Effort!</h2>
+                
+                <div class="score-display">
+                    <div class="score-circle">
+                        <div class="score-inner">
+                            <span id="score" class="score-number">0</span>
+                            <span class="score-label">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p id="result-description">You're making good progress!</p>
             </div>
 
             <div class="image-holder">
                 <img id="result-image" src="{% static 'members/images/trophy.png' %}" alt="Result Image">
             </div>
+
+            <div class="feedback-section">
+                <p id="feedback-text">Keep practicing to improve your score!</p>
+            </div>
         </div>
 
         <div class="actions">
-            <button id="retake-btn">🔁 Retake Quiz</button>
-            <button id="home-btn">🏠 Go Home</button>
+            <button id="retake-btn" class="btn btn-primary">🔁 Retake Quiz</button>
+            <button id="home-btn" class="btn btn-secondary">🏠 Go Home</button>
         </div>
     </div>
 
