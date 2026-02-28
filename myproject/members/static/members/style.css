@@ -82,6 +82,14 @@ header {
 .auth-links {
     display: flex;
     gap: 1rem;
+    align-items: center; /* vertical alignment for welcome text */
+}
+
+.auth-links .welcome {
+    color: white;
+    font-weight: 500;
+    margin-right: 1rem;
+    font-size: 1rem;
 }
 
 .auth-links a {
@@ -99,6 +107,16 @@ header {
 }
 
 .auth-links .login:hover {
+    background: white;
+    color: #667eea;
+}
+
+.auth-links .logout {
+    color: white;
+    border: 2px solid white;
+}
+
+.auth-links .logout:hover {
     background: white;
     color: #667eea;
 }

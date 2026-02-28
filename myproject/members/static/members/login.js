@@ -43,10 +43,11 @@ SUBMIT.addEventListener('click', ()=>{
     .then(response => response.json())
     .then(data => {
         if(data.message == "Matched"){
-            console.log("logined")
+            alert("Login successful!");
+            window.location.href = "/home/";
         }
         else{
-            console.log("Invalid details")
+            alert("Invalid details")
         }
     })
     .catch(err => console.error("Error: ", err))

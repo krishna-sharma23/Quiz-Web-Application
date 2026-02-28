@@ -15,6 +15,8 @@ const QUESTION_GENERATOR = document.getElementById("Question_Generator");
 const BLUR_BG = document.getElementById("blur");
 const DURATION = document.getElementById("Duration");
 const TOPIC = document.getElementById("Topic");
+const customDuration = document.getElementById('custom_duration');
+const customTopic = document.getElementById('custom_topic');
 const preview_title = document.getElementById("preview_title");
 
 //computing variables
@@ -25,6 +27,24 @@ let questionNumber = 1;
 let correct_option_entered = false;
 let number_of_questions = 0;
 Mcq.checked = true;
+
+// watch the selects so we can show custom inputs
+DURATION.addEventListener('change', () => {
+    if (DURATION.value === 'Other') {
+        customDuration.style.display = 'block';
+    } else {
+        customDuration.style.display = 'none';
+        customDuration.value = '';
+    }
+});
+TOPIC.addEventListener('change', () => {
+    if (TOPIC.value === 'Other') {
+        customTopic.style.display = 'block';
+    } else {
+        customTopic.style.display = 'none';
+        customTopic.value = '';
+    }
+});
 
 // Show toast notification
 function showToast(message, type = "success") {
@@ -217,8 +237,19 @@ function submit_question(){
         return;
     }
 
-    let Duration = DURATION.value;
-    let Topic = TOPIC.value;
+    // make sure custom inputs are filled when needed
+    if (DURATION.value === 'Other' && customDuration.value.trim() === '') {
+        showToast("Please specify a custom duration", "error");
+        return;
+    }
+    if (TOPIC.value === 'Other' && customTopic.value.trim() === '') {
+        showToast("Please specify a custom topic", "error");
+        return;
+    }
+
+    // pick custom values when "Other" is selected
+    let Duration = DURATION.value === 'Other' ? customDuration.value.trim() : DURATION.value;
+    let Topic = TOPIC.value === 'Other' ? customTopic.value.trim() : TOPIC.value;
 
     // Show loading state
     submit.disabled = true;
@@ -373,7 +404,8 @@ GENERATE_QUESTION.addEventListener('click', ()=>{
     SUBMIT.textContent = "✨ Generate"
     SUBMIT.className = 'btn btn-primary';
 
-    //generating questions from api
+    //generating questions from api via our Django proxy (uses Gemini API key)
+    // make sure you set GEMINI_API_KEY in your settings environment
     SUBMIT.addEventListener('click', async ()=>{
         let num = INPUT.value;
         
@@ -386,38 +418,51 @@ GENERATE_QUESTION.addEventListener('click', ()=>{
         SUBMIT.textContent = "⏳ Generating...";
         
         try {
-            const response = await fetch(`https://opentdb.com/api.php?amount=${num}&category=19&difficulty=easy&type=multiple`);
+            // call our Django proxy which will use the Gemini API key
+            const response = await fetch("/gen_gemini/", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: num, topic: TOPIC.value })
+            });
             const data = await response.json();
-            
-            if (data.results) {
-                let count = 0;
-                for(let value in data.results){
-                    const q = data.results[value];
-                    const allOptions = [...q.incorrect_answers, q.correct_answer];
-                    // Shuffle options
-                    allOptions.sort(() => Math.random() - 0.5);
-                    
+
+            // Normalize response to an array of question objects
+            const items = normalizeGeneratedQuestions(data.generated_text);
+            console.log(items)
+
+            if (!Array.isArray(items) || items.length === 0) {
+                showToast("No valid questions returned from backend", "error");
+                SUBMIT.disabled = false;
+                SUBMIT.textContent = "âœ¨ Generate";
+                return;
+            }
+
+                // Clear previous preview and append returned questions
+                Entered_Questions_Container.innerHTML = '';
+
+                items.forEach(q => {
+                    const text = decodeHTML(q.question || q.question_text || '');
+                    const optsRaw = q.options || q.incorrect_answers || [];
+                    const opts = Array.isArray(optsRaw) ? optsRaw.map(o => decodeHTML(o)) : [];
+                    const ans = decodeHTML(q.answer || q.correctAnswer || q.correct_answer || '');
+
                     allQuestions.push({
                         question_number: questionNumber,
-                        question: decodeHTML(q.question),
+                        question: text,
                         type: 'MCQ',
-                        options: allOptions.map(opt => decodeHTML(opt)),
-                        answer: decodeHTML(q.correct_answer),
+                        options: opts,
+                        answer: ans,
                     });
+
                     questionNumber++;
-                    count++;
-                }
-                
-                showToast(`${count} questions generated! 🎉`, "success");
-                
-                // Update preview
-                Entered_Questions_Container.innerHTML = '';
-                allQuestions.forEach(addingQuestionToList);
+                    addingQuestionToList();
+                });
+
+                // Update counter
                 Question_Counter.innerText = "" + (questionNumber - 1);
-                
-                // Close modal
                 BLUR_BG.classList.remove('active');
-            }
+                showToast("Questions generated successfully!", "success");
+
         } catch(error) {
             showToast("Error generating questions", "error");
             console.error(error);
@@ -449,4 +494,34 @@ function decodeHTML(html) {
     const txt = document.createElement('textarea');
     txt.innerHTML = html;
     return txt.value;
+}
+
+// Parse backend generated_text into an array of questions
+function normalizeGeneratedQuestions(generatedText) {
+    if (Array.isArray(generatedText)) return generatedText;
+
+    if (typeof generatedText === 'string') {
+        const cleaned = generatedText
+            .replace(/```json/gi, '')
+            .replace(/```/g, '')
+            .trim();
+
+        try {
+            const parsed = JSON.parse(cleaned);
+            return Array.isArray(parsed) ? parsed : [parsed];
+        } catch (_) {
+            const start = cleaned.indexOf('[');
+            const end = cleaned.lastIndexOf(']');
+            if (start !== -1 && end !== -1 && end > start) {
+                try {
+                    return JSON.parse(cleaned.slice(start, end + 1));
+                } catch (_) {
+                    return [];
+                }
+            }
+            return [];
+        }
+    }
+
+    return [];
 }

@@ -10,10 +10,35 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _read_env_value(key: str, default: str = "") -> str:
+    """Read env var from OS first, then fallback to BASE_DIR/.env."""
+    value = os.environ.get(key)
+    if value:
+        return value
+
+    env_file = BASE_DIR / ".env"
+    if not env_file.exists():
+        return default
+
+    try:
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            if k.strip() == key:
+                return v.strip().strip('"').strip("'")
+    except OSError:
+        return default
+
+    return default
 
 
 # Quick-start development settings - unsuitable for production
@@ -75,8 +100,15 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'mydb',
+        'USER': 'root',
+        'PASSWORD': 'Krishna@123',
+        'HOST': 'localhost',
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
 
@@ -110,6 +142,9 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+
+# Google Gemini API key (set as environment variable for security)
+GEMINI_API_KEY = _read_env_value('GEMINI_API_KEY', '')
 
 
 # Static files (CSS, JavaScript, Images)

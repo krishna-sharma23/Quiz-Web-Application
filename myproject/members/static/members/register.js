@@ -61,7 +61,7 @@ SUBMIT.addEventListener('click', () => {
         document.getElementById("warning5").style.visibility = "hidden";
     }
     if(check){
-        fetch("/save_details/", {
+        fetch("/register_user/", {
             method: 'POST',
             headers: {
             'Content-Type': 'application/json',
@@ -75,8 +75,19 @@ SUBMIT.addEventListener('click', () => {
             })
         })
         .then(response => response.json())
-        .then(data => console.log("Response:", data))
-        .catch(err => console.error("Error:", err))
+        .then(data => {
+            if(data.status === "success"){
+                alert(data.message);
+                window.location.href = "/login/";
+            }
+            else{
+                alert(data.message);
+            }
+        })
+        .catch(err => {
+            console.error("Error:", err)
+            alert(err.message);
+        })
         detail.push({
         fullname : FULL_NAME.value,
         email : EMAIL.value,
@@ -84,7 +95,7 @@ SUBMIT.addEventListener('click', () => {
         password : PASSWORD.value,
         cpassword : CPASSWORD.value,
     });
-    console.log(detail);
+    // console.log(detail);
     }
     else{
         console.log(error);

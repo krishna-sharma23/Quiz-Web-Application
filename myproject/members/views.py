@@ -3,10 +3,16 @@ from django.http import HttpResponse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+import requests
 import os
 import re
 from django.http import JsonResponse
 from django.conf import settings
+# google gemini client
+from google import genai
+# Import the User model from this app
+from .models import User
+from django.db.models import Q
 
 def validate_email(email):
     """Validate email format"""
@@ -43,11 +49,115 @@ def login_view(request):
 def register(request):
     return render(request, "members/register.html")
 
+def is_user_logged_in(request):
+    """Check if user is logged in by checking session data"""
+    return 'user_id' in request.session
+
+def logout_view(request):
+    """Clear user session to log out"""
+    if 'user_id' in request.session:
+        del request.session['user_id']
+        del request.session['username']
+        del request.session['email']
+    return render(request, "members/index.html")
+
+@csrf_exempt
+def register_user(request):
+    """
+    Handle user registration with validation and save to MySQL database.
+    
+    This view receives POST/JSON data, validates it, creates a User object,
+    and saves it to the database.
+    Flow: Request → Validation → User Object → MySQL Database
+    """
+    
+    if request.method == 'POST':
+        try:
+            # Parse JSON or form data
+            if request.content_type == 'application/json':
+                data = json.loads(request.body.decode('utf-8'))
+                # Match the keys from register.js (Name, Email, Username, Password)
+                full_name = data.get('Name', '').strip()
+                username = data.get('Username', '').strip()
+                email = data.get('Email', '').strip()
+                password = data.get('Password', '')
+            else:
+                full_name = request.POST.get('full_name', '').strip()
+                username = request.POST.get('username', '').strip()
+                email = request.POST.get('email', '').strip()
+                password = request.POST.get('password', '')
+            
+            # VALIDATION STEP 1: Check email
+            if not email or not validate_email(email):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid email format'
+                }, status=400)
+            
+            # VALIDATION STEP 2: Check username
+            if not username or not validate_username(username):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Username must be 3-20 chars (alphanumeric, underscore only)'
+                }, status=400)
+            
+            # VALIDATION STEP 3: Check password
+            if not password or not validate_password(password):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Password must be 6-100 characters'
+                }, status=400)
+            
+            # VALIDATION STEP 4: Check full name
+            if not full_name:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Full name cannot be empty'
+                }, status=400)
+            
+            # Create new User object with validated data
+            new_user = User(
+                full_name=full_name,
+                username=username,
+                email=email,
+                password=password
+            )
+            
+            # Save to MySQL database
+            new_user.save()
+            
+            # Return success response with user ID
+            return JsonResponse({
+                'status': 'success',
+                'message': 'User registered successfully!',
+                'user_id': new_user.id
+            })
+        
+        except Exception as e:
+            # If anything goes wrong, return error
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+    
+    # If not POST request, return error
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Only POST requests are allowed'
+    }, status=405)
+
+
+
 def create_survey(request):
     return render(request, "members/create_survey.html")
 
 def create_quizz(request):
-    return render(request, "members/create_quizz.html")
+    # render the quiz‑creation page in all cases, but provide a flag
+    # so the template can show a friendly message if the user isn't logged in.
+    context = {}
+    if not is_user_logged_in(request):
+        context['not_logged_in'] = True
+    return render(request, "members/create_quizz.html", context)
 
 @csrf_exempt
 def take_quizz(request):
@@ -103,41 +213,7 @@ def save_quiz(request):
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'})
 
-@csrf_exempt
-def save_details(request):
-    if request.method == 'POST':
-        try:
-            #parsing data from the request
-            data = json.loads(request.body.decode('utf-8'))
-            
-            # Validate input
-            email = data.get('Email', '').strip()
-            username = data.get('Username', '').strip()
-            password = data.get('Password', '')
-            name = data.get('Name', '').strip()
-            
-            if not email or not validate_email(email):
-                return JsonResponse({'status': 'error', 'message': 'Invalid email format'})
-            if not username or not validate_username(username):
-                return JsonResponse({'status': 'error', 'message': 'Username must be 3-20 chars (alphanumeric, underscore only)'})
-            if not password or not validate_password(password):
-                return JsonResponse({'status': 'error', 'message': 'Password must be 6-100 characters'})
-            if not name:
-                return JsonResponse({'status': 'error', 'message': 'Name cannot be empty'})
 
-            #setting the file path
-            file_path = os.path.join(settings.BASE_DIR, f'credentials/details.json')
-
-            #saving the data
-            with open(file_path, 'w') as f:
-                json.dump(data, f, indent=4)
-
-            return JsonResponse({'status': 'success', 'message': 'done'})
-        
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': "Your data is not saved"})
-
-@csrf_exempt
 def get_details(request):
     if request.method == 'POST':
         try:
@@ -154,40 +230,20 @@ def get_details(request):
             password = data.get("PassWord", "").strip()
             user_input = data.get("UserName", "").strip()
             
-            # Validate password
-            if not password or not validate_password(password):
-                return JsonResponse({'status': 'error', 'message': 'Invalid password format'})
-            if not user_input:
-                return JsonResponse({'status': 'error', 'message': 'Username or email required'})
-
-            if '@' in user_input:
-                if not validate_email(user_input):
-                    return JsonResponse({'status': 'error', 'message': 'Invalid email format'})
-                email = user_input
-            else:
-                if not validate_username(user_input):
-                    return JsonResponse({'status': 'error', 'message': 'Invalid username format'})
-                username = user_input
-           
-            file_path = os.path.join(settings.BASE_DIR, f'credentials/details.json')
-
-            with open(file_path, 'r') as file:
-                details = json.loads(file.read())
+            user = User.objects.filter(Q(username=user_input) | Q(email=user_input)).first()
             
-            if len(email) > 0:
-                if details.get("Email") == email:
-                    checkUserName = True
-            elif len(username) > 0:
-                if details.get("Username") == username:
-                    checkUserName = True
-            
-            if details.get("Password") == password:
-                checkPassWord = True
-            
-            if checkPassWord and checkUserName:
+            #Check if user not found
+            if user is None:
+                return JsonResponse({'status': 'error', 'message': 'User not found'})
+            #Check if password matches
+            if user.password == password:
+                request.session['user_id'] = user.id  # Store user ID in session
+                request.session['username'] = user.username  # Store username in session
+                request.session['email'] = user.email  # Store email in session
                 return JsonResponse({'status': 'success', 'message': 'Matched'})
             else:
-                return JsonResponse({'status': 'success', 'message': 'Not Matched'})
+                return JsonResponse({'status': 'error', 'message': 'Not Matched'})
+
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': "error"})
 
@@ -293,6 +349,92 @@ def saving_the_score(score):
         print(f"Error: Invalid JSON in file - {str(e)}")
     except Exception as e:
         print(f"Error saving score: {str(e)}")
+
+
+@csrf_exempt
+
+def gemini_generate(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            num = data.get('amount', 5)  # default to 5 questions if not provided
+            # subject = "maths"
+            topic = data.get('topic', 'general')
+            difficulty = "medium"
+            standard = "college level"
+            prompt = f"""
+            Generate {num} multiple choice quiz questions on the topic: {topic}.
+
+            Requirements:
+            - Each question must have 4 options.
+            - Only one correct answer.
+            - Questions should be clear and not ambiguous.
+            - Avoid repeated questions.
+            - Keep difficulty level: {difficulty} + {standard}.
+            - Do not include explanations.
+            - Output in clean JSON format.
+
+            JSON structure:
+            (
+                "question": "Question text",
+                "options": ["A", "B", "C", "D"],
+                "correctAnswer": "Correct option text"
+            )
+            """
+
+            # First API call with reasoning
+            response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": "Bearer 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",
+                "Content-Type": "application/json",
+            },
+            data=json.dumps({
+                "model": "stepfun/step-3.5-flash:free",
+                "messages": [
+                    {
+                    "role": "user",
+                    "content": prompt,
+                    }
+                ],
+                "reasoning": {"enabled": True}
+            })
+            )
+
+            # Extract the assistant message with reasoning_details
+            response = response.json()
+            response = response['choices'][0]['message']
+
+            generated_content = response.get('content', '')
+
+            # Normalize model text output into JSON list for frontend consumption
+            cleaned = generated_content.replace("```json", "").replace("```", "").strip()
+            parsed_questions = []
+            try:
+                parsed = json.loads(cleaned)
+                parsed_questions = parsed if isinstance(parsed, list) else [parsed]
+            except Exception:
+                start = cleaned.find('[')
+                end = cleaned.rfind(']')
+                if start != -1 and end != -1 and end > start:
+                    try:
+                        parsed_questions = json.loads(cleaned[start:end + 1])
+                    except Exception:
+                        parsed_questions = []
+
+            if not isinstance(parsed_questions, list):
+                parsed_questions = []
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Content generated successfully',
+                'generated_text': parsed_questions
+            })
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON format'})
+        except Exception as e:
+            print(f"Error generating content: {str(e)}")
+            return JsonResponse({'status': 'error', 'message': f"Error: {str(e)}"})
 
 @csrf_exempt
 def get_Score(request):

@@ -26,8 +26,13 @@
                 </ul>
             </nav>
             <div class="auth-links">
-                <a href="{% url 'login' %}" class="login">Login</a>
-                <a href="{% url 'register' %}" class="register">Register</a>
+                {% if request.session.user_id %}
+                    <span class="welcome">Hello, {{ request.session.username }}!</span>
+                    <a href="{% url 'logout' %}" class="logout">Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="login">Login</a>
+                    <a href="{% url 'register' %}" class="register">Register</a>
+                {% endif %}
             </div>
         </div>
     </header>
@@ -60,5 +65,10 @@
             <p>&copy; 2026 QuizKwik. All rights reserved. | <a href="#" style="display: inline; color: #ffd700;">Privacy Policy</a> | <a href="#" style="display: inline; color: #ffd700;">Terms of Service</a></p>
         </div>
     </footer>
+    <script>
+
+    </script>
+    {% block extra_js %}
+    {% endblock %}
 </body>
 </html>
