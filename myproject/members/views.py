@@ -11,7 +11,8 @@ from django.conf import settings
 # google gemini client
 from google import genai
 # Import the User model from this app
-from .models import User
+from .models import User, Quiz, Question, Option, Score
+from django.db import transaction
 from django.db.models import Q
 
 def validate_email(email):
@@ -171,47 +172,85 @@ def result(request):
     score = request.GET.get("score")   # get query param
     return render(request, "members/result.html", {"Score": score}) #{"quiz_id": quiz_id})
 
+@transaction.atomic
 def save_quiz(request):
-    if request.method == 'POST':
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST requests are allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        quiz_title = (data.get('title') or '').strip()
+        topic = (data.get('topic') or 'General').strip()
+        questions = data.get('questions') or []
+        duration_raw = data.get('duration', 30)
+
+        if not quiz_title:
+            return JsonResponse({'status': 'error', 'message': 'Quiz title cannot be empty'}, status=400)
+        if not questions:
+            return JsonResponse({'status': 'error', 'message': 'At least one question is required'}, status=400)
+
         try:
-            # Parse JSON data from request
-            data = json.loads(request.body)
+            duration = int(duration_raw)
+        except (TypeError, ValueError):
+            return JsonResponse({'status': 'error', 'message': 'Duration must be a valid number'}, status=400)
 
-            #getting the data
-            quizz_title = data.get('title', 'untitled_quiz').replace(' ','_')
-            questions = data.get('questions', [])
-            topic = data.get('topic', 'General')
-            duration = data.get('duration', '30')
-            
-            # Validate input
-            if not quizz_title or len(quizz_title) == 0:
-                return JsonResponse({'status': 'error', 'message': 'Quiz title cannot be empty'})
-            if not questions or len(questions) == 0:
-                return JsonResponse({'status': 'error', 'message': 'At least one question is required'})
+        user_id = request.session.get('user_id')
+        if not user_id:
+            return JsonResponse({'status': 'error', 'message': 'Login required to create a quiz'}, status=401)
 
-            print(topic)
-            print(duration)
+        creator = User.objects.filter(id=user_id).first()
+        if creator is None:
+            return JsonResponse({'status': 'error', 'message': 'User not found'}, status=404)
 
-            quiz_data = {'Title':quizz_title ,'Duration':duration, 'Topic': topic, 'Questions':questions}
+        quiz = Quiz.objects.create(
+            title=quiz_title,
+            topic=topic,
+            duration=duration,
+            created_by=creator
+        )
 
-            # Decide where to save (inside your Django project folder)
-            file_path = os.path.join(settings.BASE_DIR, f'quiz/title={quizz_title}&duration={duration}&topic={topic}_quiz.json')
+        for index, q in enumerate(questions, start=1):
+            question_text = (q.get('question') or '').strip()
+            question_type = (q.get('type') or 'MCQ').strip().upper()
+            correct_answer = (q.get('answer') or '').strip()
+            options = q.get('options') or []
 
+            if not question_text:
+                return JsonResponse({'status': 'error', 'message': f'Question {index} text cannot be empty'}, status=400)
+            if question_type not in {'MCQ', 'DAT'}:
+                return JsonResponse({'status': 'error', 'message': f'Invalid question type in question {index}'}, status=400)
+            if not correct_answer:
+                return JsonResponse({'status': 'error', 'message': f'Correct answer missing in question {index}'}, status=400)
 
-            # Save updated data back to file
-            with open(file_path, 'w') as f:
-                json.dump(quiz_data, f, indent=4)
+            question = Question.objects.create(
+                quiz=quiz,
+                question_number=index,
+                question_text=question_text,
+                question_type=question_type,
+                correct_answer=correct_answer
+            )
 
-            return JsonResponse({'status': 'success', 'message': f'Quiz {quizz_title} saved successfully'})
+            if question_type == 'MCQ':
+                if len(options) < 2:
+                    return JsonResponse({'status': 'error', 'message': f'Question {index} needs at least 2 options'}, status=400)
+                for option_text in options:
+                    cleaned_option = str(option_text).strip()
+                    if cleaned_option:
+                        Option.objects.create(
+                            question=question,
+                            option_text=cleaned_option
+                        )
 
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON format'})
-        except IOError as e:
-            return JsonResponse({'status': 'error', 'message': f'File error: {str(e)}'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
-
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Quiz {quiz_title} saved successfully',
+            'quiz_id': quiz.id
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON format'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
 def get_details(request):
@@ -248,107 +287,154 @@ def get_details(request):
             return JsonResponse({'status': 'error', 'message': "error"})
 
 def get_quiz(request):
-    folder_path = os.path.join(settings.BASE_DIR, "quiz")
     try:
-        files = os.listdir(folder_path)
-        return JsonResponse({"files": files})
+        quizzes = Quiz.objects.all().order_by("-created_at")
+        data = []
+
+        for quiz in quizzes:
+            data.append({
+                "id": quiz.id,
+                "title": quiz.title,
+                "topic": quiz.topic,
+                "duration": quiz.duration,
+                "question_count": quiz.questions.count(),
+            })
+
+        return JsonResponse({"status": "success", "quizzes": data})
     except Exception as e:
-        return JsonResponse({"error" : str(e)}, status = 500)
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 @csrf_exempt
 def display_quiz(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            file_name = data.get('id', '')
-            
-            if not file_name:
+            quiz_id = data.get('id')
+
+            if not quiz_id:
                 return JsonResponse({'status': 'error', 'message': 'Quiz ID is required'})
-                
-            file_path = os.path.join(settings.BASE_DIR, f"quiz/{file_name}")
 
-            with open(file_path, 'r') as file:
-                questions = json.loads(file.read())
+            try:
+                quiz_id = int(quiz_id)
+            except (TypeError, ValueError):
+                return JsonResponse({'status': 'error', 'message': 'Invalid quiz ID'}, status=400)
 
-            for q in questions.get("Questions", []):
-                q.pop("answer", None)
+            quiz = Quiz.objects.filter(id=quiz_id).prefetch_related("questions__options").first()
+            if quiz is None:
+                return JsonResponse({'status': 'error', 'message': 'Quiz not found'}, status=404)
 
-            return JsonResponse({'status': 'success', 'message': 'page loaded successfully', 'data': questions})
+            questions = []
+            for question in quiz.questions.all():
+                options = [opt.option_text for opt in question.options.all()]
+                questions.append({
+                    "question_id": question.id,
+                    "question_number": question.question_number,
+                    "question": question.question_text,
+                    "type": question.question_type,
+                    "options": options,
+                })
+
+            payload = {
+                "quiz_id": quiz.id,
+                "title": quiz.title,
+                "topic": quiz.topic,
+                "duration": quiz.duration,
+                "Questions": questions,
+            }
+
+            return JsonResponse({'status': 'success', 'message': 'Quiz loaded successfully', 'data': payload})
         except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON in quiz file'})
-        except FileNotFoundError:
-            return JsonResponse({'status': 'error', 'message': 'Quiz not found'})
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON in request body'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': f"Error: {str(e)}"})
+    return JsonResponse({'status': 'error', 'message': 'Only POST requests are allowed'}, status=405)
 @csrf_exempt
 
 def submit_quiz(request):
     if request.method == "POST":
         try:
-            score = 0
-            total_number_of_question = 1
-            correct_answers = 0
-            answer = ''
-            answers = {}
             data = json.loads(request.body)
-            file_path = os.path.join(settings.BASE_DIR, f"quiz/{data.get('id')}")
-            # print(data)
-            with open(file_path, 'r') as file:
-                questions = json.loads(file.read())
-                for q in questions["Questions"]:
-                    answer = q.pop("answer", None)
-                    answers[q["question_number"] - 1] = answer
-                total_number_of_question = len(answers)
-                # print(answers)
-                # print(total_number_of_question)
-                for ans in data['answers']:
-                    # print(ans)
-                    question_number = int(ans['question'])
-                    if ans['answer'] == None:
+            quiz_id = data.get('id')
+            submitted_answers = data.get('answers') or []
+
+            if not quiz_id:
+                return JsonResponse({'status': 'error', 'message': 'Quiz ID is required'}, status=400)
+
+            try:
+                quiz_id = int(quiz_id)
+            except (TypeError, ValueError):
+                return JsonResponse({'status': 'error', 'message': 'Invalid quiz ID'}, status=400)
+
+            quiz = Quiz.objects.filter(id=quiz_id).prefetch_related("questions").first()
+            if quiz is None:
+                return JsonResponse({'status': 'error', 'message': 'Quiz not found'}, status=404)
+
+            questions = list(quiz.questions.all())
+            if not questions:
+                return JsonResponse({'status': 'error', 'message': 'Quiz has no questions'}, status=400)
+
+            answers_by_question_id = {}
+            for ans in submitted_answers:
+                question_id = ans.get('question')
+                if question_id is None:
+                    continue
+                try:
+                    question_id = int(question_id)
+                except (TypeError, ValueError):
+                    continue
+                answers_by_question_id[question_id] = (ans.get('answer') or '').strip()
+
+            correct_answers = 0
+            total_number_of_question = len(questions)
+
+            for question in questions:
+                given_answer = answers_by_question_id.get(question.id, '').strip()
+                if not given_answer:
+                    continue
+
+                expected = (question.correct_answer or '').strip()
+                if question.question_type == 'DAT':
+                    keywords = [k.strip().lower() for k in expected.split(',') if k.strip()]
+                    candidate = given_answer.lower()
+                    if not keywords:
                         continue
-                    elif answers.get(question_number).upper() == ans['answer'].upper():
+                    if len(keywords) == 1:
+                        if candidate == keywords[0]:
+                            correct_answers += 1
+                    elif any(keyword in candidate for keyword in keywords):
                         correct_answers += 1
-                if correct_answers > 0:
-                    score = (correct_answers/total_number_of_question) * 100
-                    score = round(score, 2)
                 else:
-                    score = 0
-                saving_the_score(score)
-            return JsonResponse({'status': 'success', 'message': 'page loaded successfully', 'Score': score})
+                    if expected.lower() == given_answer.lower():
+                        correct_answers += 1
+
+            score = round((correct_answers / total_number_of_question) * 100, 2) if total_number_of_question else 0
+            user = None
+            user_id = request.session.get("user_id")
+            if user_id:
+                user = User.objects.filter(id=user_id).first()
+
+            Score.objects.create(
+                quiz = quiz,
+                user = user,
+                guest_name = None if user else "Guest",
+                score = score,
+                total_questions = total_number_of_question,
+                correct_answers = correct_answers,
+            )
+            return JsonResponse({
+                'status': 'success',
+                'message': 'page loaded successfully',
+                'Score': score,
+                'score': score
+            })
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'Invalid JSON format'})
-        except FileNotFoundError:
-            return JsonResponse({'status': 'error', 'message': 'Quiz file not found'})
         except ValueError as e:
             return JsonResponse({'status': 'error', 'message': f'Invalid data format: {str(e)}'})
         except Exception as e:
             print("Error during grading:", repr(e))
             return JsonResponse({'status': 'error', 'message': f"Grading error: {str(e)}"})
-
-def saving_the_score(score):
-    """Save the user's score to scores.json file"""
-    try:
-        detail_path = os.path.join(settings.BASE_DIR, "credentials/details.json")
-        store_path = os.path.join(settings.BASE_DIR, "scores/scores.json")
-        name = ''
-        
-        # Read user details
-        with open(detail_path, 'r') as detail:
-            ids = json.loads(detail.read())
-            name = ids.get('Name', 'Unknown')
-        
-        # Read and update scores
-        with open(store_path, 'r') as file:
-            data = json.loads(file.read())
-            data[name] = score
-            with open(store_path, 'w') as f:
-                json.dump(data, f, indent=4)
-    except FileNotFoundError as e:
-        print(f"Error: Required file not found - {str(e)}")
-    except json.JSONDecodeError as e:
-        print(f"Error: Invalid JSON in file - {str(e)}")
-    except Exception as e:
-        print(f"Error saving score: {str(e)}")
+    return JsonResponse({'status': 'error', 'message': 'Only POST requests are allowed'}, status=405)
 
 
 @csrf_exempt
@@ -438,19 +524,32 @@ def gemini_generate(request):
 
 @csrf_exempt
 def get_Score(request):
-    if request.method == "POST":
-        try:
-            file_path = os.path.join(settings.BASE_DIR, "scores/scores.json")
-            with open(file_path, 'r') as file:
-                data = json.loads(file.read())
-            return JsonResponse({'status': 'success', 'message': "done", 'Data': data})
-        except FileNotFoundError:
-            return JsonResponse({'status': 'error', 'message': 'Scores file not found'})
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Scores file is corrupted'})
-        except Exception as e:
-            print("Error retrieving scores:", repr(e))
-            return JsonResponse({'status': 'error', 'message': f"Error: {str(e)}"})
+    if request.method != "POST":
+        return JsonResponse({'status': 'error', 'message': 'Only POST requests are allowed'}, status=405)
+
+    try:
+        rows = (
+            Score.objects
+            .select_related("user", "quiz")
+            .order_by("-score", "-submitted_at")[:100]
+        )
+        data = []
+        for s in rows:
+            data.append({
+                "user_id": s.user_id,
+                "username": s.user.username if s.user else (s.guest_name or "Guest"),
+                "quiz_id": s.quiz_id,
+                "quiz_title": s.quiz.title,
+                "score": float(s.score),
+                "total_questions": s.total_questions,
+                "correct_answers": s.correct_answers,
+                "submitted_at": s.submitted_at.isoformat(),
+            })
+
+        return JsonResponse({'status': 'success', 'message': "done", 'Data': data})
+    except Exception as e:
+        print("Error retrieving scores:", repr(e))
+        return JsonResponse({'status': 'error', 'message': f"Error: {str(e)}"}, status=500)
 
             
     

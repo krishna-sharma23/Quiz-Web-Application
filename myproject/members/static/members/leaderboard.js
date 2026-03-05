@@ -13,7 +13,11 @@ async function get_data() {
             },
         });
         const data = await res.json();
-        let rawList = data.Data;
+        if (!res.ok || data.status !== 'success') {
+            throw new Error(data.message || 'Failed to fetch scores');
+        }
+
+        const rawList = Array.isArray(data.Data) ? data.Data : [];
 
         // Parse the data to extract quiz info and organize by user and quiz
         const quizData = parseQuizData(rawList);
@@ -34,31 +38,25 @@ async function get_data() {
 }
 
 function parseQuizData(rawData) {
-    const quizMap = {};
-    const allScores = [];
+    const allScores = rawData
+        .map(item => ({
+            name: (item.username || "Guest"),
+            score: Number(item.score),
+            quiz: item.quiz_title || "General Quiz"
+        }))
+        .filter(item => Number.isFinite(item.score));
 
-    for (let key in rawData) {
-        // Extract user and score from the key/value
-        // Format from your data appears to be: username -> score
-        const score = parseFloat(rawData[key]);
-        
-        // Try to extract quiz info from storage or assume from context
-        // For now, we'll use the username as key
-        allScores.push({
-            name: key,
-            score: score,
-            quiz: 'General Quiz' // Default, can be enhanced if quiz info is stored
-        });
-    }
-
+    // console.log(allScores)
+    
     return {
-        allScores: allScores,
-        quizMap: quizMap
+        allScores,
+        quizMap: {}
     };
 }
 
 function displayOverallLeaderboard(quizData) {
     const tbody = document.getElementById('overall-body');
+    tbody.innerHTML = '';
     
     // Sort all scores by highest first
     const sorted = quizData.allScores
@@ -104,6 +102,7 @@ function displayOverallLeaderboard(quizData) {
 
 function displayQuizLeaderboards(quizData) {
     const container = document.getElementById('quiz-sections');
+    container.innerHTML = '';
     
     // Group scores by quiz (from the quiz info if available)
     const quizGroups = {};

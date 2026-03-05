@@ -3,15 +3,16 @@ const MESSAGE = document.getElementById("message");
 const QUESTION_CONTAINER = document.getElementById("Question_container");
 const SUBMIT = document.getElementById("Submit");
 
-const TITLE = new URLSearchParams(window.location.search).get('id');
-const DURATION = new URLSearchParams(window.location.search).get('duration');
-const TOPIC = new URLSearchParams(window.location.search).get('topic');
-
-const QUIZ_ID = `${TITLE}&duration=${DURATION}&topic=${TOPIC}`;
+const QUIZ_ID = new URLSearchParams(window.location.search).get('id');
 
 load();
 
 async function load() {
+    if (!QUIZ_ID) {
+        alert("Quiz ID is missing from URL.");
+        return;
+    }
+
     const res = await fetch("/display_quiz/",{
         method: 'POST',
         headers: {
@@ -23,41 +24,66 @@ async function load() {
         })
     })
     const data = await res.json();
-    console.log(data.data.Questions)
-    for(i in data.data.Questions){
+    if (data.status !== "success" || !data.data) {
+        alert(data.message || "Failed to load quiz.");
+        return;
+    }
+
+    const quiz = data.data;
+    const questions = quiz.Questions || [];
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+        alert("No questions found for this quiz.");
+        return;
+    }
+
+    startCountdown(parseDurationToSeconds(quiz.duration));
+
+    for (let i = 0; i < questions.length; i++) {
+        const currentQuestion = questions[i];
         //creating a div for storing seperate questions
         const BLOCK = document.createElement('div');
         // creating a h3 element to store questions
         const QUESTION = document.createElement('h3');
         QUESTION.setAttribute('class', `${i}`);
-        QUESTION.textContent = `Q${data.data.Questions[i].question_number}: ` + data.data.Questions[i].question;
+        QUESTION.textContent = `Q${currentQuestion.question_number}: ` + currentQuestion.question;
         const LIST = document.createElement('div')
-        //adding options
-        for (let j in data.data.Questions[i].options) {
-            const optText = data.data.Questions[i].options[j];
-            const safeId = `q${i}_opt${j}`;                // unique id, no spaces
 
-            const label = document.createElement('label');
-            label.classList.add('option');                 // used by CSS
-            label.setAttribute('for', safeId);
+        if (currentQuestion.type === "DAT") {
+            const input = document.createElement('textarea');
+            input.classList.add('option-text');
+            input.setAttribute('rows', '3');
+            input.setAttribute('placeholder', 'Enter your answer...');
+            input.dataset.questionId = String(currentQuestion.question_id);
+            input.style.width = "100%";
+            LIST.appendChild(input);
+        } else {
+            //adding options
+            for (let j = 0; j < currentQuestion.options.length; j++) {
+                const optText = currentQuestion.options[j];
+                const safeId = `q${currentQuestion.question_id}_opt${j}`;
 
-            const input = document.createElement('input');
-            input.type = 'radio';
-            input.id = safeId;
-            input.name = `${i}`;                          // groups radio buttons
-            input.value = optText;
-            input.classList.add('option-input');
+                const label = document.createElement('label');
+                label.classList.add('option');
+                label.setAttribute('for', safeId);
 
-            const span = document.createElement('span');
-            span.classList.add('option-text');
-            span.textContent = optText;
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.id = safeId;
+                input.name = `${currentQuestion.question_id}`;
+                input.value = optText;
+                input.classList.add('option-input');
 
-            // Append input first so CSS sibling/pseudo selectors work reliably
-            label.appendChild(input);
-            label.appendChild(span);
+                const span = document.createElement('span');
+                span.classList.add('option-text');
+                span.textContent = optText;
 
-            LIST.appendChild(label);
-            LIST.appendChild(document.createElement('br'));
+                label.appendChild(input);
+                label.appendChild(span);
+
+                LIST.appendChild(label);
+                LIST.appendChild(document.createElement('br'));
+            }
         }
 
         //appending questions to the block
@@ -95,6 +121,7 @@ async function submitQuiz(auto = false) {
 
   // optionally disable inputs/UI
   document.querySelectorAll('input[type="radio"]').forEach(i => i.disabled = true);
+  document.querySelectorAll('textarea[data-question-id]').forEach(i => i.disabled = true);
 
   // show a quick message to user
   const timerSpan = document.getElementById('timer');
@@ -114,16 +141,19 @@ async function submitQuiz(auto = false) {
       })
     });
     const json = await res.json();
+    if (!res.ok || json.status !== "success") {
+      throw new Error(json.message || "Submission failed");
+    }
 
     // handle server response (score / message)
     // customize this block to match backend response
-    alert(json.message ?? `Submitted${auto ? ' (auto)' : ''}. Score: ${json.Score ?? 'N/A'}`);
-    let score = json.Score;
+    const score = json.Score ?? json.score;
+    alert(json.message ?? `Submitted${auto ? ' (auto)' : ''}. Score: ${score ?? 'N/A'}`);
     
     console.log(json);
     console.log(score);
 
-    const scoreText = score ? `Score: ${score}` : '';
+    const scoreText = (score !== undefined && score !== null) ? `Score: ${score}` : '';
     document.getElementById('BOL').innerHTML = `
       <div class="success-message">
         <div class="checkmark">✓</div>
@@ -149,6 +179,7 @@ async function submitQuiz(auto = false) {
     alert('Failed to submit quiz. Please check your connection.');
     // Re-enable radios if you want user to retry
     document.querySelectorAll('input[type="radio"]').forEach(i => i.disabled = false);
+    document.querySelectorAll('textarea[data-question-id]').forEach(i => i.disabled = false);
     submitQuiz._submitting = false;
   }
 }
@@ -170,6 +201,15 @@ function collectAnswers() {
     question: name,
     answer: groups[name]
   }));
+
+  const datInputs = document.querySelectorAll('textarea[data-question-id]');
+  datInputs.forEach(input => {
+    answers.push({
+      question: input.dataset.questionId,
+      answer: input.value ? input.value.trim() : null
+    });
+  });
+
   return answers;
 }
 
@@ -189,7 +229,7 @@ function parseDurationToSeconds(raw) {
     return isNaN(v) ? 0 : Math.round(v * 60);
   }
 
-  // plain number -> assume minutes (common)
+  // plain number -> assume minutes
   const v = parseFloat(raw);
   if (isNaN(v)) return 0;
   return Math.round(v * 60);
@@ -231,21 +271,9 @@ function startCountdown(initialSeconds) {
     }
   };
 }
-(function initTimerFromUrl() {
-  // you already have DURATION via URLSearchParams in your code
-  const rawDuration = DURATION; // uses variable from your script
-  const seconds = parseDurationToSeconds(rawDuration) || 0;
-
-  if (seconds <= 0) return; // no timer provided
-
-  // start the countdown
-  startCountdown(seconds);
-
-  // optional: lock scroll while timer running (example)
-  // document.body.style.overflow = 'hidden';  // uncomment if desired
-})();
-
-SUBMIT.addEventListener('click', submitQuiz)
+if (SUBMIT) {
+  SUBMIT.addEventListener('click', submitQuiz);
+}
 
 MESSAGE.addEventListener('animationend', () =>{
     MESSAGE.style.display = 'none';

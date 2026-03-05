@@ -30,16 +30,19 @@ function display_quiz() {
         .then(data => {
             LOADING_STATE.style.display = "none";
 
-            if (data.files && data.files.length > 0) {
-                console.log("✅ Quizzes loaded:", data.files);
-                
-                allQuizzes = data.files.map(file => parseQuizFile(file));
+            if (data.status === "success" && data.quizzes && data.quizzes.length > 0) {
+                allQuizzes = data.quizzes.map((quiz) => ({
+                    id: quiz.id,
+                    title: quiz.title,
+                    duration: String(quiz.duration),
+                    topic: quiz.topic,
+                    question_count: quiz.question_count || 0
+                }));
                 filteredQuizzes = [...allQuizzes];
                 
                 renderQuizzes(filteredQuizzes);
             } else {
-                ERROR_STATE.style.display = "block";
-                console.error("No quizzes available");
+                EMPTY_STATE.style.display = "block";
             }
         })
         .catch(err => {
@@ -47,21 +50,6 @@ function display_quiz() {
             ERROR_STATE.style.display = "block";
             console.error("Fetch failed:", err);
         });
-}
-
-// Parse quiz file name to extract details
-function parseQuizFile(file) {
-    const details = file.split('&');
-    const title = details[0].slice(details[0].indexOf('=') + 1);
-    const duration = details[1].slice(details[1].indexOf('=') + 1);
-    const topic = details[2].slice(details[2].indexOf('=') + 1).replace('_quiz.json', '');
-
-    return {
-        file: file,
-        title: decodeURIComponent(title),
-        duration: duration,
-        topic: topic
-    };
 }
 
 // Render quiz cards
@@ -87,7 +75,7 @@ function renderQuizzes(quizzes) {
 // Create individual quiz card
 function createQuizCard(quiz, index) {
     const card = document.createElement('a');
-    card.href = `${url}?id=${quiz.file}`;
+    card.href = `${url}?id=${quiz.id}`;
     card.className = 'quiz-card';
     card.style.animation = `fadeInUp 0.6s ease ${0.05 * index}s both`;
 
@@ -140,7 +128,7 @@ function createQuizCard(quiz, index) {
             </div>
         </div>
         <div class="quiz-card-footer">
-            <button class="btn-start" onclick="event.preventDefault(); window.location.href='${url}?id=${quiz.file}';">
+            <button class="btn-start" onclick="event.preventDefault(); window.location.href='${url}?id=${quiz.id}';">
                 <span>🎮</span>
                 Start Quiz
             </button>
